@@ -2,14 +2,15 @@
 #include <iostream>
 #include <vector>
 #include <windows.h>
-#include <filesystem>
 
 class Updater {
 private:
-	std::ifstream file;
+	std::fstream file;
 	size_t fileSize;
 	uint32_t world_offset;
+	uint32_t objects_offset;
 	uint32_t names_offset;
+
 private:
 	unsigned long GetInt(char* hex) {
 		const auto uhex = reinterpret_cast<unsigned char*>(hex);
@@ -18,12 +19,8 @@ private:
 	}
 	bool CompareByteArray(unsigned char* data, unsigned char* sig, size_t size) {
 		for (size_t i = 0; i < size; i++) {
-			if (sig[i] == 0x00) {
-				continue;
-			}
-			if (data[i] != sig[i]) {
-				return false;
-			}
+			if (sig[i] == 0x00) continue;
+			if (data[i] != sig[i]) return false;
 		}
 		return true;
 	}
@@ -53,14 +50,13 @@ private:
 		char lEndian[4];
 		file.read(lEndian, 4);
 		auto rOffset = GetInt(lEndian);
-		auto offset = (instructionAddr + 7 + rOffset + 0xC00);
-		return offset;
+		return (instructionAddr + 7 + rOffset + 0xC00);
 	}
 public:
 	size_t LoadFile(const char* path) {
 		fileSize = 0;
-		if (std::filesystem::exists(path)) {
-			file = std::ifstream(path, std::ios::binary);
+		file = std::fstream(path, std::ios::in | std::ios::out | std::ios::binary);
+		if (file.is_open()) {
 			file.seekg(0, file.end);
 			fileSize = file.tellg();
 		}
@@ -68,40 +64,33 @@ public:
 	};
 	uint32_t GetGWorld() {
 		static unsigned char sig[] = { 0x48, 0x8B, 0x1D, 0x0, 0x0, 0x0, 0x00, 0x48, 0x85, 0xDB, 0x74, 0x3B };
-		world_offset = FindOffset(sig, 12);
+		world_offset = FindOffset(sig, sizeof(sig));
 		return world_offset;
+	}
+	size_t GetGObjects() {
+		static unsigned char sig[] = { 0x48, 0x8B, 0x05, 0x00, 0x00, 0x00, 0x00, 0x48, 0x8B, 0x0C, 0xC8, 0x48, 0x8D, 0x04, 0xD1, 0xEB, 0x03 };
+		objects_offset = FindOffset(sig,sizeof(sig));
+		return objects_offset;
 	}
 	uint64_t GetGNames() {
 		static unsigned char sig[] = { 0x48, 0x8B, 0x05, 0x00, 0x00, 0x00, 0x00, 0x48, 0x85, 0xC0, 0x75, 0x5F };
-		names_offset = FindOffset(sig, 12);
+		names_offset = FindOffset(sig, sizeof(sig));
 		return names_offset;
-	}
-	void SaveAsFile(const char* path) {
-		file.close();
-		std::ofstream saveFile(path);
-		saveFile << "{\n\t\"World\": " << std::dec << world_offset << ",\n\t\"Names\": " << std::dec << names_offset << "\n}";
 	}
 };
 
 int main(int argc, const char* argv[]) {
-	if (argc < 2) {
-		std::cout << "Options:\n\t-s\tSaveAsFile\n";
-		std::cout << "Usage:\n\t.\\updater.exe [-s] \"pathToExe\"";
+	if (argc != 2) {
+		std::cout << "Usage:\t.\\updater.exe \"pathToGame\"";
 		return 0;
 	}
 	Updater updater;
-	const char* path = argv[argc - 1];
-	bool save = false;
-	for (int i = 1; i < argc - 1; i++) {
-		if (!strcmp(argv[i], "-s")) save = true;
-	}
-
-	if (!updater.LoadFile(path)) return 0;
-
-	std::cout << "World: " << std::hex << updater.GetGWorld() << std::endl;
-	std::cout << "Names: " << std::hex << updater.GetGNames();
-	if (save) {
-		updater.SaveAsFile("offsets.json");
-	}
+	if (!updater.LoadFile(argv[1])) return 0;
+	std::cout << "World\t:\t" << std::hex << updater.GetGWorld() << std::endl;
+	Beep(370, 100);
+	std::cout << "Objects\t:\t" << std::hex << updater.GetGObjects()<< std::endl;
+	Beep(370, 100);
+	std::cout << "Names\t:\t" << std::hex << updater.GetGNames() << std::endl;
+	Beep(370, 100);
 	return 1;
 }
