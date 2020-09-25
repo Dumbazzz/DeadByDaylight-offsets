@@ -21,12 +21,8 @@ private:
 		}
 		return true;
 	}
-
 	size_t FindSignature(std::vector<BYTE> sig, size_t start_at = 0) {
 		for (size_t offset = start_at; offset < fileSize - sig.size(); offset++) {
-			if (offset >= 0x600) {
-				int stophere = 0;
-			}
 			if (fileBytes[offset] == sig[0]) {
 				bool equals = CompareByteArray(reinterpret_cast<BYTE*>(fileBytes + offset + 1), sig.data() + 1, sig.size() - 1);
 				if (equals) {
