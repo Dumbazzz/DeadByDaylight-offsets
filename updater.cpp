@@ -45,6 +45,11 @@ private:
 		return 0;
 	}
 public:
+	~Updater(){
+		if (fileBytes){
+			delete[] fileBytes;
+		}
+	}
 	size_t LoadFile(const char* path) {
 		auto file = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (file != INVALID_HANDLE_VALUE) {
@@ -100,17 +105,17 @@ int main(int argc, const char* argv[]) {
 		printf("Usage: .\\%ls \"pathToUE4Game\"\n", std::filesystem::path(argv[0]).filename().c_str());
 		return 0;
 	}
-	Updater updater;
-	if (!updater.LoadFile(argv[1])) return 0;
-	printf("%-17s|\t%.7X\n", "UWorld", updater.GetGWorld());
+	Updater* updater = new Updater;
+	if (!updater->LoadFile(argv[1])) return 0;
+	printf("%-17s|\t%.7X\n", "UWorld", updater->GetGWorld());
 	Beep(370, 100);
-	printf("%-17s|\t%.7X\n", "TUObjectArray", updater.GetGObjects());
+	printf("%-17s|\t%.7X\n", "TUObjectArray", updater->GetGObjects());
 	Beep(370, 100);
-	printf("%-17s|\t%.7X\n", "TNameEntryArray", updater.GetGNames());
+	printf("%-17s|\t%.7X\n", "TNameEntryArray", updater->GetGNames());
 	Beep(370, 100);
-	printf("%-17s|\t%.7X\n", "FNamePool", updater.GetNamePool());
+	printf("%-17s|\t%.7X\n", "FNamePool", updater->GetNamePool());
 	Beep(370, 100);
-
+	delete updater;
 
 	return 1;
 }
