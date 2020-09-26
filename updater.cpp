@@ -16,19 +16,20 @@ private:
 private:
 	bool CompareByteArray(BYTE* data, BYTE* sig, size_t size) {
 		for (size_t i = 0; i < size; i++) {
-			if (sig[i] == 0x00) continue;
-			if (data[i] != sig[i]) return false;
+			if (data[i] != sig[i]) {
+				if (sig[i] == 0x00) continue;
+				return false;
+			}
 		}
 		return true;
 	}
 	size_t FindSignature(std::vector<BYTE> sig, size_t start_at = 0) {
 		for (size_t offset = start_at; offset < fileSize - sig.size(); offset++) {
-			if (fileBytes[offset] == sig[0]) {
-				bool equals = CompareByteArray(reinterpret_cast<BYTE*>(fileBytes + offset + 1), sig.data() + 1, sig.size() - 1);
-				if (equals) {
-					return offset;
-				}
+			bool equals = CompareByteArray(reinterpret_cast<BYTE*>(fileBytes + offset), sig.data(), sig.size());
+			if (equals) {
+				return offset;
 			}
+			
 		}
 		return 0;
 	}
